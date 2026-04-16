@@ -1,0 +1,76 @@
+name: 'Run hadolint with reviewdog'
+description: '🐶 Run hadolint with reviewdog on pull requests to lint Dockerfile and validate inline bash.'
+author: 'mgrachev (reviewdog)'
+inputs:
+  github_token:
+    description: 'GITHUB_TOKEN'
+    default: '${{ github.token }}'
+  hadolint_flags:
+    description: 'Hadolint flags. (hadolint <hadolint_flags>)'
+    default: ''
+  hadolint_ignore:
+    description: 'List of ignored rules. (hadolint --ignore RULE1 --ignore RULE2)'
+    default: ''
+  tool_name:
+    description: 'Tool name to use for reviewdog reporter'
+    default: 'hadolint'
+  exclude:
+    description: 'List of files and folders to exclude'
+    default: ''
+  include:
+    description: 'List of files and folders to include'
+    default: '*Dockerfile*'
+  level:
+    description: 'Report level for reviewdog [info,warning,error]'
+    default: 'error'
+  reporter:
+    description: |
+      Reporter of reviewdog command [github-pr-check,github-pr-review].
+      Default is github-pr-check.
+    default: 'github-pr-check'
+  filter_mode:
+    description: |
+      Filtering mode for the reviewdog command [added,diff_context,file,nofilter].
+      Default is added.
+    default: 'added'
+  fail_level:
+    description: |
+      If set to `none`, always use exit code 0 for reviewdog. Otherwise, exit code 1 for reviewdog if it finds at least 1 issue with severity greater than or equal to the given level.
+      Possible values: [none,any,info,warning,error]
+      Default is `none`.
+    default: 'none'
+  fail_on_error:
+    description: |
+      Deprecated, use `fail_level` instead.
+      Exit code for reviewdog when errors are found [true,false]
+      Default is `false`.
+    deprecationMessage: Deprecated, use `fail_level` instead.
+    default: 'false'
+  reviewdog_flags:
+    description: 'Additional reviewdog flags'
+    default: ''
+runs:
+  using: 'composite'
+  steps:
+    - run: $GITHUB_ACTION_PATH/script.sh
+      shell: sh
+      env:
+        REVIEWDOG_VERSION: v0.20.3
+        HADOLINT_VERSION: v2.12.0
+        # INPUT_<VARIABLE_NAME> is not available in Composite run steps
+        # https://github.community/t/input-variable-name-is-not-available-in-composite-run-steps/127611
+        INPUT_GITHUB_TOKEN: ${{ inputs.github_token }}
+        INPUT_EXCLUDE: ${{ inputs.exclude }}
+        INPUT_INCLUDE: ${{ inputs.include }}
+        INPUT_HADOLINT_IGNORE: ${{ inputs.hadolint_ignore }}
+        INPUT_HADOLINT_FLAGS: ${{ inputs.hadolint_flags }}
+        INPUT_TOOL_NAME: ${{ inputs.tool_name }}
+        INPUT_LEVEL: ${{ inputs.level }}
+        INPUT_REPORTER: ${{ inputs.reporter }}
+        INPUT_FILTER_MODE: ${{ inputs.filter_mode }}
+        INPUT_FAIL_LEVEL: ${{ inputs.fail_level }}
+        INPUT_FAIL_ON_ERROR: ${{ inputs.fail_on_error }}
+        INPUT_REVIEWDOG_FLAGS: ${{ inputs.reviewdog_flags }}
+branding:
+  icon: 'check-circle'
+  color: 'blue'
