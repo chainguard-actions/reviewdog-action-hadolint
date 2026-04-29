@@ -1,5 +1,7 @@
 # reviewdog/action-hadolint
 
+Run hadolint with reviewdog 🐶
+
 Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/reviewdog/action-hadolint](https://github.com/reviewdog/action-hadolint).
 
 ## Versions

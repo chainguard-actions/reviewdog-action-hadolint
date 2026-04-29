@@ -1,5 +1,6 @@
 {
   "owner": "reviewdog",
   "name": "action-hadolint",
-  "visibility": ""
+  "visibility": "internal",
+  "description": "Run hadolint with reviewdog 🐶"
 }
