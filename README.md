@@ -1,6 +1,12 @@
 # reviewdog/action-hadolint
 
-Hardened GitHub Action by [Chainguard](https://www.chainguard.dev).
+Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/reviewdog/action-hadolint](https://github.com/reviewdog/action-hadolint).
+
+## Versions
+
+| Version | Tag | Upstream commit |
+|---------|-----|-----------------|
+| v1 | [`v1`](https://github.com/chainguard-actions/action-hadolint/tree/v1) | — |
 
 ## Privacy
 
