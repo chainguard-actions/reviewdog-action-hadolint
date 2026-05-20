@@ -1,7 +1,0 @@
-{
-  "owner": "reviewdog",
-  "name": "action-hadolint",
-  "visibility": "internal",
-  "description": "Run hadolint with reviewdog 🐶",
-  "block_publish": false
-}
