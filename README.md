@@ -8,7 +8,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
-| v1 | [`v1`](https://github.com/chainguard-actions/action-hadolint/tree/v1) | — |
+| v1 | [`v1`](https://github.com/chainguard-actions/reviewdog--action-hadolint/tree/v1) | — |
 
 ## Privacy
 
