@@ -14,7 +14,7 @@ Action **reviewdog--action-hadolint/v1.50.5** was hardened automatically. 1 find
 
 ### unsafe-shell (severity: high)
 
-In script.sh line 11, a remote install script is fetched with `curl` and piped directly to `sh` for execution: `curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/fd59714416d6d9a1c0692d872e38e7f8448df4fc/install.sh | sh -s -- ...`. Even though the URL is pinned to a specific commit SHA in the path, the content is still executed without being saved to disk and inspected first. This pattern allows a compromised or man-in-the-middle response to execute arbitrary code on the runner.
+script.sh pipes a remotely fetched install script directly to a shell interpreter: `curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/fd59714416d6d9a1c0692d872e38e7f8448df4fc/install.sh | sh -s -- ...`. Although the URL is pinned to a specific commit SHA, piping remote content directly to `sh` is an unsafe pattern — if the remote content is ever tampered with or the network is intercepted, arbitrary code will execute in the runner. The script should be downloaded to a file first, its integrity verified (e.g. via checksum), and then executed separately.
 
 Locations:
 
@@ -28,5 +28,5 @@ Locations:
 
 **Notes:**
 
-Fixed the unsafe curl-pipe-to-shell pattern in script.sh line 11. Changed from `curl -sfL <url> | sh -s -- ...` to downloading the script to a temporary file first (`curl -sfL <url> -o "${REVIEWDOG_INSTALL_SCRIPT}"`), then executing it separately (`sh "${REVIEWDOG_INSTALL_SCRIPT}" ...`). The URL remains pinned to the same specific commit SHA (fd59714416d6d9a1c0692d872e38e7f8448df4fc), and all original arguments are preserved.
+Fixed script.sh line 11: replaced `curl ... | sh -s -- ...` (pipe-to-shell anti-pattern) with a two-step approach: (1) download the install script to a temp file using `curl -sfL ... -o "${REVIEWDOG_INSTALL_SCRIPT}"`, then (2) execute it separately with `sh "${REVIEWDOG_INSTALL_SCRIPT}" ...`. The URL remains pinned to commit SHA fd59714416d6d9a1c0692d872e38e7f8448df4fc for source integrity.
 

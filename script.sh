@@ -9,7 +9,9 @@ PATH="${TEMP_PATH}:$PATH"
 
 echo '::group::🐶 Installing reviewdog ... https://github.com/reviewdog/reviewdog'
 REVIEWDOG_INSTALL_SCRIPT="${TEMP_PATH}/install-reviewdog.sh"
+# Download the install script pinned to a specific commit SHA for integrity
 curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/fd59714416d6d9a1c0692d872e38e7f8448df4fc/install.sh -o "${REVIEWDOG_INSTALL_SCRIPT}"
+# Execute the downloaded script separately (never pipe remote content directly to sh)
 sh "${REVIEWDOG_INSTALL_SCRIPT}" -b "${TEMP_PATH}" "${REVIEWDOG_VERSION}" 2>&1
 echo '::endgroup::'
 
