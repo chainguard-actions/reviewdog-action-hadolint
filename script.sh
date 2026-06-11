@@ -1,6 +1,4 @@
-#!/bin/sh
-
-# shellcheck disable=SC2086,SC2089,SC2090
+#!/bin/bash
 
 cd "${GITHUB_WORKSPACE}" || exit
 
@@ -9,9 +7,8 @@ PATH="${TEMP_PATH}:$PATH"
 
 echo '::group::🐶 Installing reviewdog ... https://github.com/reviewdog/reviewdog'
 REVIEWDOG_INSTALL_SCRIPT="${TEMP_PATH}/install-reviewdog.sh"
-# Download the install script pinned to a specific commit SHA for integrity
-curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/fd59714416d6d9a1c0692d872e38e7f8448df4fc/install.sh -o "${REVIEWDOG_INSTALL_SCRIPT}"
-# Execute the downloaded script separately (never pipe remote content directly to sh)
+curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/fd59714416d6d9a1c0692d872e38e7f8448df4fc/install.sh \
+  -o "${REVIEWDOG_INSTALL_SCRIPT}"
 sh "${REVIEWDOG_INSTALL_SCRIPT}" -b "${TEMP_PATH}" "${REVIEWDOG_VERSION}" 2>&1
 echo '::endgroup::'
 
@@ -22,34 +19,53 @@ if [ "$RUNNER_ARCH" = "ARM64" ]; then
   HADOLINT_FILE="hadolint-Linux-arm64"
 fi
 
-wget -q "https://github.com/hadolint/hadolint/releases/download/$HADOLINT_VERSION/$HADOLINT_FILE" -O $TEMP_PATH/hadolint \
-    && chmod +x $TEMP_PATH/hadolint
+wget -q "https://github.com/hadolint/hadolint/releases/download/$HADOLINT_VERSION/$HADOLINT_FILE" -O "$TEMP_PATH/hadolint" \
+    && chmod +x "$TEMP_PATH/hadolint"
 echo '::endgroup::'
 
 export REVIEWDOG_GITHUB_API_TOKEN="${INPUT_GITHUB_TOKEN}"
 
-EXCLUDES=""
-for exclude_path in $INPUT_EXCLUDE; do
-  set -- --exclude="!${exclude_path}"
-  EXCLUDES="$EXCLUDES $*"
+# Build git ls-files exclude arguments from INPUT_EXCLUDE
+# (word-split on whitespace to get individual paths)
+GIT_EXCLUDE_ARGS=()
+read -ra _exclude_paths <<< "$INPUT_EXCLUDE"
+for exclude_path in "${_exclude_paths[@]}"; do
+  GIT_EXCLUDE_ARGS+=("--exclude=!${exclude_path}")
 done
 
-INCLUDES=""
-for include_path in $INPUT_INCLUDE; do
-  set -- --exclude="${include_path}"
-  INCLUDES="$INCLUDES $*"
+# Build git ls-files include arguments from INPUT_INCLUDE
+# (word-split on whitespace to get individual paths)
+GIT_INCLUDE_ARGS=()
+read -ra _include_paths <<< "$INPUT_INCLUDE"
+for include_path in "${_include_paths[@]}"; do
+  GIT_INCLUDE_ARGS+=("--exclude=${include_path}")
 done
 
-IGNORE_LIST=""
-for rule in $INPUT_HADOLINT_IGNORE; do
-  IGNORE_LIST="$IGNORE_LIST --ignore $rule"
+# Build hadolint --ignore arguments from INPUT_HADOLINT_IGNORE
+# (word-split on whitespace to get individual rule names)
+HADOLINT_IGNORE_ARGS=()
+read -ra _hadolint_ignore_rules <<< "$INPUT_HADOLINT_IGNORE"
+for rule in "${_hadolint_ignore_rules[@]}"; do
+  HADOLINT_IGNORE_ARGS+=(--ignore "$rule")
 done
 
-INPUT_HADOLINT_FLAGS="$INPUT_HADOLINT_FLAGS $IGNORE_LIST"
+# Build hadolint extra flags array (word-split on whitespace)
+HADOLINT_FLAGS_ARGS=()
+read -ra _hadolint_flags <<< "$INPUT_HADOLINT_FLAGS"
+for flag in "${_hadolint_flags[@]}"; do
+  HADOLINT_FLAGS_ARGS+=("$flag")
+done
+
+# Build reviewdog extra flags array (word-split on whitespace)
+REVIEWDOG_FLAGS_ARGS=()
+read -ra _reviewdog_flags <<< "$INPUT_REVIEWDOG_FLAGS"
+for flag in "${_reviewdog_flags[@]}"; do
+  REVIEWDOG_FLAGS_ARGS+=("$flag")
+done
 
 echo '::group:: Running hadolint with reviewdog 🐶 ...'
-git ls-files ${INCLUDES} --ignored --cached ${EXCLUDES} \
-  | xargs hadolint -f json ${INPUT_HADOLINT_FLAGS} \
+git ls-files "${GIT_INCLUDE_ARGS[@]}" --ignored --cached "${GIT_EXCLUDE_ARGS[@]}" \
+  | xargs hadolint -f json "${HADOLINT_IGNORE_ARGS[@]}" "${HADOLINT_FLAGS_ARGS[@]}" \
   | jq -f "${GITHUB_ACTION_PATH}/to-rdjson.jq" -c \
   | reviewdog -f="rdjson" \
     -name="${INPUT_TOOL_NAME}" \
@@ -58,7 +74,7 @@ git ls-files ${INCLUDES} --ignored --cached ${EXCLUDES} \
     -fail-level="${INPUT_FAIL_LEVEL}" \
     -fail-on-error="${INPUT_FAIL_ON_ERROR}" \
     -level="${INPUT_LEVEL}" \
-    ${INPUT_REVIEWDOG_FLAGS}
+    "${REVIEWDOG_FLAGS_ARGS[@]}"
 EXIT_CODE=$?
 echo '::endgroup::'
 
