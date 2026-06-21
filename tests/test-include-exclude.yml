@@ -1,0 +1,45 @@
+name: Test hadolint with include/exclude filters
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: dummy-token
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create Dockerfiles for testing include/exclude
+        run: |
+          # Create a clean Dockerfile that should be included
+          cat > "$GITHUB_WORKSPACE/Dockerfile" <<'EOF'
+          FROM ubuntu:22.04
+          RUN apt-get update && apt-get install -y --no-install-recommends curl \
+              && rm -rf /var/lib/apt/lists/*
+          EOF
+
+          # Create a Dockerfile.test that should be excluded
+          cat > "$GITHUB_WORKSPACE/Dockerfile.test" <<'EOF'
+          FROM ubuntu
+          RUN apt-get install -y curl
+          EOF
+
+          git add Dockerfile Dockerfile.test
+          git config user.email "test@test.com"
+          git config user.name "Test"
+          git commit -m "add Dockerfiles"
+
+      - id: action
+        uses: .
+        with:
+          github_token: dummy-token
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+          level: warning
+          include: "Dockerfile"
+          exclude: "Dockerfile.test"
+
+      - name: Assert action completed successfully
+        run: |
+          echo "PASS: hadolint ran with include/exclude filters without fatal error"

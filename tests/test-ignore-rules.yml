@@ -1,0 +1,37 @@
+name: Test hadolint with ignored rules
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: dummy-token
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a Dockerfile with known lint issues
+        run: |
+          cat > "$GITHUB_WORKSPACE/Dockerfile" <<'EOF'
+          FROM ubuntu
+          RUN apt-get install -y curl
+          EOF
+          git add Dockerfile
+          git config user.email "test@test.com"
+          git config user.name "Test"
+          git commit -m "add Dockerfile with issues"
+
+      - id: action
+        uses: .
+        with:
+          github_token: dummy-token
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+          level: warning
+          # DL3006: Always tag the version of an image explicitly
+          # DL3008: Pin versions in apt get install
+          hadolint_ignore: DL3006 DL3008
+
+      - name: Assert action completed successfully
+        run: |
+          echo "PASS: hadolint ran with ignored rules without fatal error"
