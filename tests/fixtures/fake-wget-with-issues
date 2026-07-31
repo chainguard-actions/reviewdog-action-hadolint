@@ -1,0 +1,26 @@
+#!/bin/sh
+# Fake wget: intercepts hadolint download URL and creates a fake hadolint binary
+# that reports a lint issue (for testing fail_level=none).
+
+out=""
+prev=""
+for arg in "$@"; do
+  case "$prev" in
+    -O) out="$arg" ;;
+  esac
+  prev="$arg"
+done
+
+# Check if this is the hadolint download URL
+case "$*" in
+  *hadolint*)
+    if [ -n "$out" ]; then
+      printf '#!/bin/sh\necho '"'"'[{"line":1,"code":"DL3006","message":"Always tag the version of an image explicitly","column":1,"file":"/dev/stdin","level":"warning"}]'"'"'\nexit 0\n' > "$out"
+      chmod +x "$out"
+    fi
+    exit 0
+    ;;
+esac
+
+# Fall through to real wget for other URLs
+exec /usr/bin/wget "$@"

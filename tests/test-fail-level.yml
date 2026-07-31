@@ -1,0 +1,32 @@
+name: Test fail_level none - action succeeds even with lint issues
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install fake curl and wget to avoid internet downloads
+        run: |
+          FAKE_BIN="$HOME/.fake-bin"
+          mkdir -p "$FAKE_BIN"
+          cp "$GITHUB_WORKSPACE/tests/fixtures/fake-curl" "$FAKE_BIN/curl"
+          cp "$GITHUB_WORKSPACE/tests/fixtures/fake-wget" "$FAKE_BIN/wget"
+          chmod +x "$FAKE_BIN/curl" "$FAKE_BIN/wget"
+          echo "$FAKE_BIN" >> "$GITHUB_PATH"
+
+      - name: Run hadolint with fail_level=none
+        id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          reporter: 'local'
+          filter_mode: 'nofilter'
+          fail_level: 'none'
+          level: 'info'
+          include: 'tests/fixtures/Dockerfile.clean'
+
+      - name: Assert action succeeded with fail_level=none
+        run: |
+          echo "PASS: action exited 0 with fail_level=none"

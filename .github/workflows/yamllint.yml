@@ -1,0 +1,22 @@
+---
+name: yamllint
+on: [pull_request]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  yamllint:
+    name: check / yamllint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: yamllint
+        uses: reviewdog/action-yamllint@e02a49fdf53f51ddd8dfa89b09aa975043aeba38 # v1.23.0
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-review
+          fail_level: any
+          yamllint_flags: '-d "{extends: default, rules: {truthy: disable}}" .'

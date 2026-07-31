@@ -1,0 +1,43 @@
+#!/bin/sh
+# Fake curl: intercepts reviewdog install URL and serves a canned install script.
+# Supports both "curl URL | sh" (stdout) and hardened "curl -o FILE URL" forms.
+
+out=""
+prev=""
+for arg in "$@"; do
+  case "$prev" in
+    -o|--output) out="$arg" ;;
+  esac
+  prev="$arg"
+done
+
+# Check if this is the reviewdog install URL
+case "$*" in
+  *reviewdog*)
+    # Write a shell script that installs a fake reviewdog binary
+    TMPSCRIPT="$(mktemp)"
+    printf '#!/bin/sh\n' > "$TMPSCRIPT"
+    printf 'bindir=""\n' >> "$TMPSCRIPT"
+    printf 'prev=""\n' >> "$TMPSCRIPT"
+    printf 'for arg in "$@"; do\n' >> "$TMPSCRIPT"
+    printf '  case "$prev" in\n' >> "$TMPSCRIPT"
+    printf '    -b) bindir="$arg" ;;\n' >> "$TMPSCRIPT"
+    printf '  esac\n' >> "$TMPSCRIPT"
+    printf '  prev="$arg"\n' >> "$TMPSCRIPT"
+    printf 'done\n' >> "$TMPSCRIPT"
+    printf 'if [ -n "$bindir" ]; then\n' >> "$TMPSCRIPT"
+    printf '  printf "#!/bin/sh\\ncat > /dev/null\\nexit 0\\n" > "$bindir/reviewdog"\n' >> "$TMPSCRIPT"
+    printf '  chmod +x "$bindir/reviewdog"\n' >> "$TMPSCRIPT"
+    printf 'fi\n' >> "$TMPSCRIPT"
+    if [ -n "$out" ]; then
+      cp "$TMPSCRIPT" "$out"
+    else
+      cat "$TMPSCRIPT"
+    fi
+    rm -f "$TMPSCRIPT"
+    exit 0
+    ;;
+esac
+
+# Fall through to real curl for other URLs
+exec /usr/bin/curl "$@"
