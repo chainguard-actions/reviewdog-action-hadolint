@@ -1,0 +1,33 @@
+name: Test with Dockerfile that has linting issues
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a Dockerfile with known hadolint issues
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/test-issues"
+          cat > "$GITHUB_WORKSPACE/test-issues/Dockerfile" << 'EOF'
+          FROM ubuntu
+          RUN apt-get install -y curl
+          EOF
+          git add "$GITHUB_WORKSPACE/test-issues/Dockerfile"
+
+      - name: Run hadolint action with fail_level=none (should not fail even with issues)
+        id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          include: 'test-issues/Dockerfile'
+          reporter: 'local'
+          filter_mode: 'nofilter'
+          fail_level: 'none'
+          level: 'warning'
+
+      - name: Assert action completed without error
+        run: |
+          echo "Action completed - fail_level=none means exit 0 even with issues"
+          echo "PASS"

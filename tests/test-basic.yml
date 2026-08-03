@@ -1,0 +1,34 @@
+name: Test basic usage - clean Dockerfile
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a clean Dockerfile for testing
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/test-docker"
+          cat > "$GITHUB_WORKSPACE/test-docker/Dockerfile" << 'EOF'
+          FROM ubuntu:22.04
+          RUN apt-get update && apt-get install -y --no-install-recommends curl \
+              && rm -rf /var/lib/apt/lists/*
+          EOF
+          git add "$GITHUB_WORKSPACE/test-docker/Dockerfile"
+
+      - name: Run hadolint action on clean Dockerfile
+        id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          include: 'test-docker/Dockerfile'
+          reporter: 'local'
+          filter_mode: 'nofilter'
+          fail_level: 'error'
+          level: 'error'
+
+      - name: Assert action succeeded
+        run: |
+          echo "Action completed successfully with exit code 0"
+          echo "PASS"

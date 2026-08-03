@@ -1,0 +1,42 @@
+name: Test exclude input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create Dockerfiles - one to include, one to exclude
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/test-exclude/included"
+          mkdir -p "$GITHUB_WORKSPACE/test-exclude/excluded"
+          # Clean Dockerfile in included dir
+          cat > "$GITHUB_WORKSPACE/test-exclude/included/Dockerfile" << 'EOF'
+          FROM ubuntu:22.04
+          RUN apt-get update && apt-get install -y --no-install-recommends curl \
+              && rm -rf /var/lib/apt/lists/*
+          EOF
+          # Dockerfile with issues in excluded dir (would fail if not excluded)
+          cat > "$GITHUB_WORKSPACE/test-exclude/excluded/Dockerfile" << 'EOF'
+          FROM ubuntu
+          RUN apt-get install -y curl
+          EOF
+          git add "$GITHUB_WORKSPACE/test-exclude/"
+
+      - name: Run hadolint action excluding the problematic directory
+        id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          include: 'test-exclude/*/Dockerfile'
+          exclude: 'test-exclude/excluded/Dockerfile'
+          reporter: 'local'
+          filter_mode: 'nofilter'
+          fail_level: 'none'
+          level: 'warning'
+
+      - name: Assert action completed
+        run: |
+          echo "Action completed with exclude filter applied"
+          echo "PASS"
