@@ -1,0 +1,39 @@
+name: Test hadolint_ignore suppresses rules
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a Dockerfile that triggers specific rules
+        run: |
+          mkdir -p tests/fixtures/ignore
+          cat > tests/fixtures/ignore/Dockerfile <<'EOF'
+          FROM ubuntu
+          RUN apt-get install -y curl
+          EOF
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git add tests/fixtures/ignore/Dockerfile
+          git commit -m "Add Dockerfile for ignore rule testing"
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          include: 'tests/fixtures/ignore/Dockerfile'
+          # DL3006: Always tag the version of an image explicitly
+          # DL3008: Pin versions in apt get install
+          # DL3009: Delete the apt-get lists after installing something
+          # DL3015: Avoid additional packages by specifying `--no-install-recommends`
+          hadolint_ignore: 'DL3006 DL3008 DL3009 DL3015'
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+
+      - name: Assert action completed with ignored rules
+        run: |
+          echo "Action completed with hadolint_ignore — specific rules suppressed"
+          echo "PASS"

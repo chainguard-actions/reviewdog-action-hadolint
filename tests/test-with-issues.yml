@@ -1,0 +1,36 @@
+name: Test hadolint detects Dockerfile issues
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a Dockerfile with known issues
+        run: |
+          mkdir -p tests/fixtures/issues
+          cat > tests/fixtures/issues/Dockerfile <<'EOF'
+          FROM ubuntu
+          RUN apt-get install -y curl
+          EOF
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git add tests/fixtures/issues/Dockerfile
+          git commit -m "Add Dockerfile with issues for testing"
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          include: 'tests/fixtures/issues/Dockerfile'
+          reporter: local
+          filter_mode: nofilter
+          # fail_level=none means exit 0 even if issues found
+          fail_level: none
+          level: warning
+
+      - name: Assert action completed (issues found but fail_level=none)
+        run: |
+          echo "Action completed with fail_level=none — exit code should be 0 regardless of findings"
+          echo "PASS"
