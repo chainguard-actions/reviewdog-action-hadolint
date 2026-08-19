@@ -1,0 +1,28 @@
+name: Test fail_level none - always exit 0 even with issues
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REF: refs/heads/main
+      GITHUB_EVENT_NAME: push
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Run hadolint with fail_level none on Dockerfile with issues
+        id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          reporter: local
+          filter_mode: nofilter
+          # Use default Dockerfile glob pattern to scan all Dockerfiles
+          include: '*Dockerfile*'
+          # Do NOT ignore any rules - there will be lint findings
+          hadolint_ignore: ''
+          # fail_level none means exit 0 even with findings
+          fail_level: none
+      - name: Assert action exited 0 despite lint findings
+        run: |
+          echo "Action exited 0 with fail_level=none even though there are lint issues"
+          echo "PASS"

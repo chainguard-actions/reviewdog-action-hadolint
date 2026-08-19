@@ -8,47 +8,46 @@
 
 **Test Policy SHA:** `843adf9e4b8f85d0c08b27b9d0b09dd094b54702`
 
-**Harden Agent Version:** `1`
+**Harden Agent Version:** `2`
 
-Action **reviewdog--action-hadolint/v1.50.5** was hardened automatically. 2 finding(s) were identified and resolved across 2 iteration(s).
+Action **reviewdog--action-hadolint/v1.50.5** was hardened automatically. 2 finding(s) were identified and resolved across 3 iteration(s).
 
 ## Findings Fixed
 
 ### unsafe-shell (severity: high)
 
-script.sh pipes remote content directly to a shell interpreter. The line `curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/fd59714416d6d9a1c0692d872e38e7f8448df4fc/install.sh | sh -s -- -b "${TEMP_PATH}" "${REVIEWDOG_VERSION}" 2>&1` downloads and immediately executes a remote script via `sh`. Even though the URL contains a commit SHA (which mitigates some risk), piping remote content directly to a shell is an unsafe pattern — the script should be downloaded to a file, verified, and then executed separately.
+script.sh pipes a remotely fetched install script directly to `sh` without first downloading and verifying it. The pattern `curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/.../install.sh | sh -s -- ...` executes arbitrary remote content in the runner shell, which is a supply-chain risk even when the URL includes a commit SHA in the path.
 
 Locations:
 
 - `script.sh:11`
 
-### script-injection (severity: high)
+### missing-permissions (severity: medium)
 
-Rule (b) violation: Multiple unquoted shell variable expansions of untrusted, workflow-controlled input values in script.sh. The composite action maps all user inputs into env vars (INPUT_EXCLUDE, INPUT_INCLUDE, INPUT_HADOLINT_IGNORE, INPUT_HADOLINT_FLAGS, INPUT_REVIEWDOG_FLAGS, INPUT_TOOL_NAME, INPUT_REPORTER, INPUT_FILTER_MODE, INPUT_FAIL_LEVEL, INPUT_FAIL_ON_ERROR, INPUT_LEVEL), which are then expanded unquoted in shell commands. This allows an attacker to inject shell metacharacters (`;`, `|`, `&`, `$(...)`, etc.) via any of these inputs. Affected lines include: `for exclude_path in $INPUT_EXCLUDE` (line 26), `for include_path in $INPUT_INCLUDE` (line 31), `for rule in $INPUT_HADOLINT_IGNORE` (line 36), `git ls-files ${INCLUDES} --ignored --cached ${EXCLUDES}` (line 43), `xargs hadolint -f json ${INPUT_HADOLINT_FLAGS}` (line 44), and `${INPUT_REVIEWDOG_FLAGS}` (line 53). The `# shellcheck disable=SC2086,SC2089,SC2090` comment at line 3 explicitly suppresses the unquoted-variable warnings, confirming these are known but unmitigated.
+None of the workflow files define a `permissions:` key at the top level or at the job level. Without explicit permissions, workflows run with the repository's default token permissions (which may be broad write access). Each workflow should declare minimal required permissions.
 
 Locations:
 
-- `script.sh:3`
-- `script.sh:26`
-- `script.sh:31`
-- `script.sh:36`
-- `script.sh:43`
-- `script.sh:44`
-- `script.sh:53`
+- `.github/workflows/depup.yml:1`
+- `.github/workflows/release.yml:1`
+- `.github/workflows/reviewdog.yml:1`
+- `.github/workflows/test.yml:1`
+- `.github/workflows/yamllint.yml:1`
 
 ## Iteration Notes
 
 ### Iteration 1
 
-**Fixes applied:** unsafe-shell, script-injection
+**Fixes applied:** unsafe-shell, missing-permissions
 
 **Notes:**
 
-Fixed two high-severity findings in script.sh:
-
-1. unsafe-shell (line 11): Replaced `curl ... | sh` pipe with a two-step approach — download the reviewdog install script to `${TEMP_PATH}/install-reviewdog.sh` using `curl -o`, then execute it separately with `sh "${REVIEWDOG_INSTALL_SCRIPT}" ...`.
-
-2. script-injection (lines 3, 26, 31, 36, 43, 44, 53): Converted the script from POSIX sh to bash and replaced all unquoted variable expansions with bash arrays. Each user-controlled input (INPUT_EXCLUDE, INPUT_INCLUDE, INPUT_HADOLINT_IGNORE, INPUT_HADOLINT_FLAGS, INPUT_REVIEWDOG_FLAGS) is now iterated and accumulated into a typed bash array (GIT_EXCLUDE_ARGS, GIT_INCLUDE_ARGS, HADOLINT_IGNORE_ARGS, HADOLINT_FLAGS_ARGS, REVIEWDOG_FLAGS_ARGS), then expanded with `"${array[@]}"` which prevents shell metacharacter injection. The `# shellcheck disable=SC2086,SC2089,SC2090` suppression comment was removed. action.yml was updated from `shell: sh` to `shell: bash` to match the new shebang.
+1. script.sh (line 11): Replaced `curl ... | sh -s -- ...` with a two-step approach: download the install script to a temp file with `curl -sfL -o "${INSTALL_SCRIPT}"`, execute it separately with `sh "${INSTALL_SCRIPT}"`, then remove the temp file. This eliminates the supply-chain risk of piping remote content directly to a shell.
+2. .github/workflows/depup.yml: Added `permissions: contents: write, pull-requests: write` (needs to create PRs).
+3. .github/workflows/release.yml: Added `permissions: contents: write` (needs to create releases and update tags).
+4. .github/workflows/reviewdog.yml: Added `permissions: contents: read, pull-requests: write` (needs to post PR review comments).
+5. .github/workflows/test.yml: Added `permissions: contents: read, checks: write, pull-requests: write` (needs to post check results and PR review comments).
+6. .github/workflows/yamllint.yml: Added `permissions: contents: read, pull-requests: write` (needs to post PR review comments).
 
 ### Iteration 2
 
@@ -56,5 +55,27 @@ Fixed two high-severity findings in script.sh:
 
 **Notes:**
 
-Fixed all 5 instances of unquoted variable expansion in for loops in script.sh (lines 32, 38, 44, 50, 56). Replaced `for var in $INPUT_VAR` patterns with safe array splitting using `read -ra _array <<< "$INPUT_VAR"` followed by `for var in "${_array[@]}"`. This prevents glob expansion and shell metacharacter injection from attacker-controlled input values while preserving the intended whitespace-splitting behavior.
+Fixed all 6 unquoted variable expansion instances in script.sh by switching from POSIX sh to bash and using proper bash arrays:
+1. Changed shebang from #!/bin/sh to #!/bin/bash
+2. Changed action.yml shell from 'sh' to 'bash'
+3. Replaced string-accumulation pattern for EXCLUDES/INCLUDES with bash arrays, expanded as "${EXCLUDES[@]}" and "${INCLUDES[@]}" in git ls-files call
+4. Replaced string-accumulation for IGNORE_LIST with a bash array, each rule individually double-quoted
+5. Replaced unquoted ${INPUT_HADOLINT_FLAGS} with a HADOLINT_FLAGS bash array (merged with IGNORE_LIST), expanded as "${HADOLINT_FLAGS[@]}" in xargs call
+6. Replaced unquoted ${INPUT_REVIEWDOG_FLAGS} with a REVIEWDOG_FLAGS bash array, expanded as "${REVIEWDOG_FLAGS[@]}" in reviewdog invocation
+7. Also fixed unquoted $TEMP_PATH/hadolint in wget/chmod calls as a bonus hardening
+
+### Iteration 3
+
+**Fixes applied:** script-injection
+
+**Notes:**
+
+Fixed all 5 script injection issues in script.sh by replacing unquoted variable expansions with `read -ra` array splitting:
+1. `for exclude_path in ${INPUT_EXCLUDE}` → `read -ra _exclude_parts <<< "${INPUT_EXCLUDE}"` + `for exclude_path in "${_exclude_parts[@]}"`
+2. `for include_path in ${INPUT_INCLUDE}` → `read -ra _include_parts <<< "${INPUT_INCLUDE}"` + `for include_path in "${_include_parts[@]}"`
+3. `for rule in ${INPUT_HADOLINT_IGNORE}` → `read -ra _ignore_parts <<< "${INPUT_HADOLINT_IGNORE}"` + `for rule in "${_ignore_parts[@]}"`
+4. `HADOLINT_FLAGS=(${INPUT_HADOLINT_FLAGS})` → `read -ra HADOLINT_FLAGS <<< "${INPUT_HADOLINT_FLAGS}"`
+5. `REVIEWDOG_FLAGS=(${INPUT_REVIEWDOG_FLAGS})` → `read -ra REVIEWDOG_FLAGS <<< "${INPUT_REVIEWDOG_FLAGS}"`
+
+The `read -ra` approach uses a double-quoted here-string to prevent glob expansion during input, and the resulting array elements are always accessed with double-quoted `"${array[@]}"` syntax. This preserves the intended whitespace-splitting behavior while eliminating glob injection risk.
 

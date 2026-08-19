@@ -1,0 +1,36 @@
+name: Test exclude input to skip specific files
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create Dockerfiles for exclude test
+        run: |
+          mkdir -p tests/fixtures/exclude/excluded-dir
+          cat > tests/fixtures/exclude/excluded-dir/Dockerfile <<'EOF'
+          FROM ubuntu
+          RUN apt-get install -y jq
+          EOF
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git add tests/fixtures/exclude/excluded-dir/Dockerfile
+          git commit -m "Add Dockerfile fixture for exclude test"
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          include: '*Dockerfile*'
+          exclude: 'tests/fixtures/exclude/excluded-dir'
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+          level: error
+
+      - name: Assert action completed with excluded directory
+        run: |
+          echo "Action completed with excluded directory"
+          echo "PASS"

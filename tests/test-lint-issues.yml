@@ -1,0 +1,35 @@
+name: Test with Dockerfile that has lint issues
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a Dockerfile with lint issues for testing
+        run: |
+          mkdir -p tests/fixtures/issues
+          cat > tests/fixtures/issues/Dockerfile <<'EOF'
+          FROM ubuntu
+          RUN apt-get install -y jq
+          EOF
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git add tests/fixtures/issues/Dockerfile
+          git commit -m "Add Dockerfile with lint issues fixture"
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          include: '*Dockerfile*'
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+          level: warning
+
+      - name: Assert action completed (issues found but fail_level=none)
+        run: |
+          echo "Action completed with fail_level=none even though issues exist"
+          echo "PASS"

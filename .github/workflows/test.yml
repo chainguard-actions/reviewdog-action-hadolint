@@ -1,0 +1,35 @@
+name: Test
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  test-check:
+    name: runner / hadolint (github-check)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: ./
+        with:
+          reporter: github-check
+          level: info
+          exclude: Dockerfile.dockerignore
+
+  test-pr-review:
+    if: github.event_name == 'pull_request'
+    name: runner / hadolint (github-pr-review)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: ./
+        with:
+          reporter: github-pr-review
+          filter_mode: diff_context
+          exclude: Dockerfile.dockerignore

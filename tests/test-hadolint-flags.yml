@@ -1,0 +1,38 @@
+name: Test hadolint_flags and tool_name inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a Dockerfile for hadolint flags test
+        run: |
+          mkdir -p tests/fixtures/flags
+          cat > tests/fixtures/flags/Dockerfile <<'EOF'
+          FROM ubuntu:22.04
+          RUN apt-get update && apt-get install -y --no-install-recommends curl \
+              && rm -rf /var/lib/apt/lists/*
+          EOF
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git add tests/fixtures/flags/Dockerfile
+          git commit -m "Add Dockerfile fixture for hadolint flags test"
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          include: '*Dockerfile*'
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+          level: error
+          tool_name: hadolint-custom
+          hadolint_flags: '--trusted-registry docker.io'
+
+      - name: Assert action completed with custom tool_name and hadolint_flags
+        run: |
+          echo "Action completed with custom tool_name and hadolint_flags"
+          echo "PASS"

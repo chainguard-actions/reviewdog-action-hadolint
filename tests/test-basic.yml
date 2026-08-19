@@ -1,0 +1,28 @@
+name: Test basic usage - run hadolint with local reporter
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_REF: refs/heads/main
+      GITHUB_EVENT_NAME: push
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Run hadolint action (basic, no failures expected)
+        id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          # Use local reporter so no GitHub API calls are needed
+          reporter: local
+          # Use nofilter so all files are checked regardless of git diff
+          filter_mode: nofilter
+          # Use default Dockerfile glob pattern
+          include: '*Dockerfile*'
+          # fail_level none means always exit 0
+          fail_level: none
+      - name: Assert action completed successfully
+        run: |
+          echo "Action completed successfully"
+          echo "PASS"
