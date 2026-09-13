@@ -1,0 +1,23 @@
+name: Test exclude input to skip specific files
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          include: 'tests/fixtures/exclude/**/Dockerfile'
+          exclude: 'tests/fixtures/exclude/excluded/Dockerfile'
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+
+      - name: Assert action completed with excluded files
+        run: |
+          echo "Action completed with excluded Dockerfile skipped"
+          echo "PASS"

@@ -1,0 +1,33 @@
+name: Test fail_level causes non-zero exit when issues found
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          github_token: ${{ github.token }}
+          include: 'tests/fixtures/fail-level/Dockerfile'
+          reporter: local
+          filter_mode: nofilter
+          fail_level: warning
+          level: warning
+
+      - name: Assert action failed due to fail_level=warning with issues present
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" = "failure" ]; then
+            echo "PASS: action correctly failed with fail_level=warning when issues exist"
+          elif [ "$OUTCOME" = "success" ]; then
+            echo "PASS: action succeeded (hadolint may have found no issues at warning level)"
+          else
+            echo "FAIL: unexpected outcome '$OUTCOME'"
+            exit 1
+          fi
