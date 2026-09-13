@@ -16,6 +16,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v1.52 | [`v1.52`](https://github.com/chainguard-actions/reviewdog-action-hadolint/tree/v1.52) | [`8e0881b`](https://github.com/reviewdog/action-hadolint/commit/8e0881b5853b07174811d7937da954b8c42d5257) |
 | v1.52.0 | [`v1.52.0`](https://github.com/chainguard-actions/reviewdog-action-hadolint/tree/v1.52.0) | [`8e0881b`](https://github.com/reviewdog/action-hadolint/commit/8e0881b5853b07174811d7937da954b8c42d5257) |
 | v1.53.0 | [`v1.53.0`](https://github.com/chainguard-actions/reviewdog-action-hadolint/tree/v1.53.0) | [`2d0eb7c`](https://github.com/reviewdog/action-hadolint/commit/2d0eb7c86a0ddd94eb625485f4cc2730e105edd8) |
+| v1.54.0 | [`v1.54.0`](https://github.com/chainguard-actions/reviewdog-action-hadolint/tree/v1.54.0) | [`9d9a44a`](https://github.com/reviewdog/action-hadolint/commit/9d9a44af664599d7fe5ed5ee3d66d2d236cb7f8f) |
 
 ## Privacy
 
