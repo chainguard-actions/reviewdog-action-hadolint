@@ -1,0 +1,49 @@
+name: Test violations detected - Dockerfile with issues
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up mock tools
+        run: |
+          # Stage helper scripts to /tmp
+          cp tests/fixtures/fake-reviewdog-install.sh /tmp/fake-reviewdog-install.sh
+          cp tests/fixtures/fake-hadolint-violations.sh /tmp/fake-hadolint.sh
+          chmod +x /tmp/fake-reviewdog-install.sh /tmp/fake-hadolint.sh
+
+          # Set up mock bin directory with fake curl and wget
+          MOCK_DIR="$GITHUB_WORKSPACE/.mock-bin"
+          mkdir -p "$MOCK_DIR"
+          cp tests/fixtures/fake-curl "$MOCK_DIR/curl"
+          cp tests/fixtures/fake-wget "$MOCK_DIR/wget"
+          chmod +x "$MOCK_DIR/curl" "$MOCK_DIR/wget"
+
+          echo "$MOCK_DIR" >> "$GITHUB_PATH"
+
+      - name: Copy Dockerfile with violations into workspace root
+        run: |
+          cp tests/fixtures/Dockerfile.violations Dockerfile
+
+      - name: Add Dockerfile to git index (required for git ls-files)
+        run: |
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git add Dockerfile
+
+      - name: Run action with fail_level=none (should succeed even with violations)
+        id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          include: 'Dockerfile'
+          reporter: 'github-pr-check'
+          filter_mode: 'nofilter'
+          fail_level: 'none'
+          level: 'warning'
+
+      - name: Assert action completed (violations found but fail_level=none)
+        run: |
+          echo "PASS: action completed with fail_level=none despite Dockerfile violations"

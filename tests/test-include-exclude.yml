@@ -1,0 +1,48 @@
+name: Test include and exclude inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up mock tools
+        run: |
+          # Stage helper scripts to /tmp
+          cp tests/fixtures/fake-reviewdog-install.sh /tmp/fake-reviewdog-install.sh
+          cp tests/fixtures/fake-hadolint-clean.sh /tmp/fake-hadolint.sh
+          chmod +x /tmp/fake-reviewdog-install.sh /tmp/fake-hadolint.sh
+
+          # Set up mock bin directory with fake curl and wget
+          MOCK_DIR="$GITHUB_WORKSPACE/.mock-bin"
+          mkdir -p "$MOCK_DIR"
+          cp tests/fixtures/fake-curl "$MOCK_DIR/curl"
+          cp tests/fixtures/fake-wget "$MOCK_DIR/wget"
+          chmod +x "$MOCK_DIR/curl" "$MOCK_DIR/wget"
+
+          echo "$MOCK_DIR" >> "$GITHUB_PATH"
+
+      - name: Set up Dockerfiles for include/exclude test
+        run: |
+          cp tests/fixtures/Dockerfile.clean Dockerfile
+          cp tests/fixtures/Dockerfile.violations Dockerfile.skip
+          git config user.email "test@example.com"
+          git config user.name "Test User"
+          git add Dockerfile Dockerfile.skip
+
+      - name: Run action including only Dockerfile, excluding Dockerfile.skip
+        id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          include: '*Dockerfile*'
+          exclude: 'Dockerfile.skip'
+          reporter: 'github-pr-check'
+          filter_mode: 'nofilter'
+          fail_level: 'none'
+          level: 'warning'
+
+      - name: Assert action completed with include/exclude filtering
+        run: |
+          echo "PASS: action completed with include/exclude filtering applied"

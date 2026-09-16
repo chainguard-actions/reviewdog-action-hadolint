@@ -1,0 +1,25 @@
+#!/bin/sh
+# Fake curl: intercepts reviewdog install.sh download
+# Supports both "curl URL | sh" (stdout) and hardened "curl -o FILE URL" forms
+
+out=""
+prev=""
+for arg in "$@"; do
+  case "$prev" in
+    -o|--output) out="$arg" ;;
+  esac
+  prev="$arg"
+done
+
+case "$*" in
+  *reviewdog*)
+    if [ -n "$out" ]; then
+      cp /tmp/fake-reviewdog-install.sh "$out"
+    else
+      cat /tmp/fake-reviewdog-install.sh
+    fi
+    exit 0
+    ;;
+esac
+
+exec /usr/bin/curl "$@"

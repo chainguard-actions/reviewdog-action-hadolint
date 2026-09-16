@@ -1,0 +1,23 @@
+#!/bin/sh
+# Fake wget: intercepts hadolint binary download
+
+out=""
+prev=""
+for arg in "$@"; do
+  case "$prev" in
+    -O) out="$arg" ;;
+  esac
+  prev="$arg"
+done
+
+case "$*" in
+  *hadolint*)
+    if [ -n "$out" ]; then
+      cp /tmp/fake-hadolint.sh "$out"
+      chmod +x "$out"
+    fi
+    exit 0
+    ;;
+esac
+
+exec /usr/bin/wget "$@"
