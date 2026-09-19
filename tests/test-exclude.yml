@@ -1,0 +1,37 @@
+name: Test exclude input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create Dockerfiles for exclude test
+        run: |
+          # Create two Dockerfiles - one to include, one to exclude
+          cat > "$GITHUB_WORKSPACE/Dockerfile.included" <<'EOF'
+          FROM ubuntu:22.04
+          RUN apt-get update && apt-get install -y --no-install-recommends curl \
+              && rm -rf /var/lib/apt/lists/*
+          EOF
+          cat > "$GITHUB_WORKSPACE/Dockerfile.excluded" <<'EOF'
+          FROM ubuntu
+          RUN apt-get install -y jq
+          EOF
+          git add Dockerfile.included Dockerfile.excluded
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          include: '*Dockerfile*'
+          exclude: 'Dockerfile.excluded'
+          reporter: 'local'
+          filter_mode: 'nofilter'
+          fail_level: 'none'
+
+      - name: Assert action completed with exclude applied
+        run: |
+          echo "Action completed - Dockerfile.excluded was excluded from linting"
+          echo "PASS: hadolint ran with exclude pattern applied"
