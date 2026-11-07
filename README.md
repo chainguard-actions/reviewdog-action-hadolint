@@ -18,6 +18,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v1.53.0 | [`v1.53.0`](https://github.com/chainguard-actions/reviewdog-action-hadolint/tree/v1.53.0) | [`2d0eb7c`](https://github.com/reviewdog/action-hadolint/commit/2d0eb7c86a0ddd94eb625485f4cc2730e105edd8) | [`HARDENING.md`](https://github.com/chainguard-actions/reviewdog-action-hadolint/blob/v1.53.0/HARDENING.md) |
 | v1.54.0 | [`v1.54.0`](https://github.com/chainguard-actions/reviewdog-action-hadolint/tree/v1.54.0) | [`9d9a44a`](https://github.com/reviewdog/action-hadolint/commit/9d9a44af664599d7fe5ed5ee3d66d2d236cb7f8f) | [`HARDENING.md`](https://github.com/chainguard-actions/reviewdog-action-hadolint/blob/v1.54.0/HARDENING.md) |
 | v1.55.0 | [`v1.55.0`](https://github.com/chainguard-actions/reviewdog-action-hadolint/tree/v1.55.0) | [`1df9233`](https://github.com/reviewdog/action-hadolint/commit/1df92335c6c70880e301926d46148aeb27de1912) | [`HARDENING.md`](https://github.com/chainguard-actions/reviewdog-action-hadolint/blob/v1.55.0/HARDENING.md) |
+| v1.56.0 | [`v1.56.0`](https://github.com/chainguard-actions/reviewdog-action-hadolint/tree/v1.56.0) | [`a3bc84c`](https://github.com/reviewdog/action-hadolint/commit/a3bc84c51f4ddbcbc5b91d950d0b66c15c88b113) | [`HARDENING.md`](https://github.com/chainguard-actions/reviewdog-action-hadolint/blob/v1.56.0/HARDENING.md) |
 
 ## Privacy
 
