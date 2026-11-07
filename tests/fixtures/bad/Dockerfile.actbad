@@ -1,0 +1,4 @@
+FROM debian:12.5
+WORKDIR relative/path
+RUN sudo echo hello
+CMD ["echo", "hello"]

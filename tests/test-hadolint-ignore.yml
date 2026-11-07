@@ -1,0 +1,27 @@
+name: Test hadolint_ignore suppresses rules
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          include: '*Dockerfile.actbad*'
+          reporter: local
+          filter_mode: nofilter
+          fail_level: error
+          hadolint_ignore: DL3000 DL3004
+      - name: Assert action succeeded with rules ignored
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected success when violated rules are ignored"
+            exit 1
+          fi
+          echo "PASS"
