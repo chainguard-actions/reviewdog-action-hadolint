@@ -8,7 +8,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 | Version | Tag | Upstream commit | Hardening report |
 |---------|-----|-----------------|------------------|
-| v1 | [`v1`](https://github.com/chainguard-actions/reviewdog-action-hadolint/tree/v1) | [`2d0eb7c`](https://github.com/reviewdog/action-hadolint/commit/2d0eb7c86a0ddd94eb625485f4cc2730e105edd8) | [`HARDENING.md`](https://github.com/chainguard-actions/reviewdog-action-hadolint/blob/v1/HARDENING.md) |
+| v1 | [`v1`](https://github.com/chainguard-actions/reviewdog-action-hadolint/tree/v1) | [`a3bc84c`](https://github.com/reviewdog/action-hadolint/commit/a3bc84c51f4ddbcbc5b91d950d0b66c15c88b113) | [`HARDENING.md`](https://github.com/chainguard-actions/reviewdog-action-hadolint/blob/v1/HARDENING.md) |
 | v1.50 | [`v1.50`](https://github.com/chainguard-actions/reviewdog-action-hadolint/tree/v1.50) | [`921946a`](https://github.com/reviewdog/action-hadolint/commit/921946a7ebaaf08ac72607bad67209f4e52b5407) | — |
 | v1.50.5 | [`v1.50.5`](https://github.com/chainguard-actions/reviewdog-action-hadolint/tree/v1.50.5) | [`921946a`](https://github.com/reviewdog/action-hadolint/commit/921946a7ebaaf08ac72607bad67209f4e52b5407) | [`HARDENING.md`](https://github.com/chainguard-actions/reviewdog-action-hadolint/blob/v1.50.5/HARDENING.md) |
 | v1.51 | [`v1.51`](https://github.com/chainguard-actions/reviewdog-action-hadolint/tree/v1.51) | [`1b2cfa6`](https://github.com/reviewdog/action-hadolint/commit/1b2cfa6ba72072ad35158d7ff3aa49bbdc03506d) | — |
