@@ -1,0 +1,28 @@
+name: Test exclude skips files
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        continue-on-error: true
+        with:
+          include: tests/fixtures/hadolint/good/Dockerfile tests/fixtures/hadolint/bad/Dockerfile
+          exclude: tests/fixtures/hadolint/bad/Dockerfile
+          reporter: local
+          filter_mode: nofilter
+          level: error
+          fail_level: error
+      - name: Assert action succeeded
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected success when bad Dockerfile is excluded"
+            exit 1
+          fi
+          echo "PASS"
