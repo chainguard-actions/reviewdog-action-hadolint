@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 cd "${GITHUB_WORKSPACE}" || exit
 
@@ -6,9 +6,17 @@ TEMP_PATH="$(mktemp -d)"
 PATH="${TEMP_PATH}:$PATH"
 
 echo '::group::🐶 Installing reviewdog ... https://github.com/reviewdog/reviewdog'
-INSTALL_SCRIPT="$(mktemp)"
-curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/fd59714416d6d9a1c0692d872e38e7f8448df4fc/install.sh -o "$INSTALL_SCRIPT"
-sh "$INSTALL_SCRIPT" -b "${TEMP_PATH}" "${REVIEWDOG_VERSION}" 2>&1
+INSTALL_SCRIPT="${TEMP_PATH}/reviewdog-install.sh"
+if ! curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/fd59714416d6d9a1c0692d872e38e7f8448df4fc/install.sh -o "${INSTALL_SCRIPT}"; then
+  echo '::error::Failed to download reviewdog installer'
+  exit 1
+fi
+if [ ! -s "${INSTALL_SCRIPT}" ] || ! head -n1 "${INSTALL_SCRIPT}" | grep -q '^#!'; then
+  echo '::error::Downloaded reviewdog installer is empty or invalid'
+  exit 1
+fi
+sh "${INSTALL_SCRIPT}" -b "${TEMP_PATH}" "${REVIEWDOG_VERSION}" 2>&1
+rm -f "${INSTALL_SCRIPT}"
 echo '::endgroup::'
 
 echo '::group:: Installing hadolint ... https://github.com/hadolint/hadolint'
@@ -24,76 +32,38 @@ echo '::endgroup::'
 
 export REVIEWDOG_GITHUB_API_TOKEN="${INPUT_GITHUB_TOKEN}"
 
-# Build EXCLUDES: each token in INPUT_EXCLUDE becomes --exclude=!<token>
-# (INPUT_EXCLUDE is a whitespace-separated list of simple path tokens)
-set --
-if [ -n "$INPUT_EXCLUDE" ]; then
-  _tmpfile="$(mktemp)"
-  printf '%s' "$INPUT_EXCLUDE" | xargs -n1 printf '%s\n' > "$_tmpfile"
-  while IFS= read -r exclude_path; do
-    [ -n "$exclude_path" ] && set -- "$@" "--exclude=!${exclude_path}"
-  done < "$_tmpfile"
-  rm -f "$_tmpfile"
-fi
-EXCLUDES="$*"
+# The list inputs below are split (and globbed) exactly as upstream's unquoted
+# expansions did, via unquoted array assignment; every resulting element is then
+# passed as a separate, quoted argument. Nothing in the values is evaluated.
 
-# Build INCLUDES: each token in INPUT_INCLUDE becomes --exclude=<token>
-# (INPUT_INCLUDE is a whitespace-separated list of simple path tokens)
-set --
-if [ -n "$INPUT_INCLUDE" ]; then
-  _tmpfile="$(mktemp)"
-  printf '%s' "$INPUT_INCLUDE" | xargs -n1 printf '%s\n' > "$_tmpfile"
-  while IFS= read -r include_path; do
-    [ -n "$include_path" ] && set -- "$@" "--exclude=${include_path}"
-  done < "$_tmpfile"
-  rm -f "$_tmpfile"
-fi
-INCLUDES="$*"
+# shellcheck disable=SC2206
+exclude_list=($INPUT_EXCLUDE)
+excludes=()
+for exclude_path in "${exclude_list[@]}"; do
+  excludes+=("--exclude=!${exclude_path}")
+done
 
-# Build IGNORE_ARGS: each token in INPUT_HADOLINT_IGNORE becomes --ignore <token>
-# (INPUT_HADOLINT_IGNORE is a whitespace-separated list of rule names)
-set --
-if [ -n "$INPUT_HADOLINT_IGNORE" ]; then
-  _tmpfile="$(mktemp)"
-  printf '%s' "$INPUT_HADOLINT_IGNORE" | xargs -n1 printf '%s\n' > "$_tmpfile"
-  while IFS= read -r rule; do
-    [ -n "$rule" ] && set -- "$@" --ignore "$rule"
-  done < "$_tmpfile"
-  rm -f "$_tmpfile"
-fi
-IGNORE_ARGS="$*"
+# shellcheck disable=SC2206
+include_list=($INPUT_INCLUDE)
+includes=()
+for include_path in "${include_list[@]}"; do
+  includes+=("--exclude=${include_path}")
+done
 
-# Tokenize INPUT_HADOLINT_FLAGS (may contain quoted arguments) into positional params
-# then capture as a safe string for use in the pipeline
-set --
-if [ -n "$INPUT_HADOLINT_FLAGS" ]; then
-  _tmpfile="$(mktemp)"
-  printf '%s' "$INPUT_HADOLINT_FLAGS" | xargs -n1 printf '%s\n' > "$_tmpfile"
-  while IFS= read -r flag; do
-    [ -n "$flag" ] && set -- "$@" "$flag"
-  done < "$_tmpfile"
-  rm -f "$_tmpfile"
-fi
-HADOLINT_EXTRA_ARGS="$*"
+# shellcheck disable=SC2206
+hadolint_args=($INPUT_HADOLINT_FLAGS)
+# shellcheck disable=SC2206
+ignore_list=($INPUT_HADOLINT_IGNORE)
+for rule in "${ignore_list[@]}"; do
+  hadolint_args+=(--ignore "$rule")
+done
 
-# Tokenize INPUT_REVIEWDOG_FLAGS (may contain quoted arguments) into positional params
-set --
-if [ -n "$INPUT_REVIEWDOG_FLAGS" ]; then
-  _tmpfile="$(mktemp)"
-  printf '%s' "$INPUT_REVIEWDOG_FLAGS" | xargs -n1 printf '%s\n' > "$_tmpfile"
-  while IFS= read -r flag; do
-    [ -n "$flag" ] && set -- "$@" "$flag"
-  done < "$_tmpfile"
-  rm -f "$_tmpfile"
-fi
-REVIEWDOG_EXTRA_ARGS="$*"
+# shellcheck disable=SC2206
+reviewdog_args=($INPUT_REVIEWDOG_FLAGS)
 
 echo '::group:: Running hadolint with reviewdog 🐶 ...'
-# EXCLUDES, INCLUDES, IGNORE_ARGS, HADOLINT_EXTRA_ARGS, REVIEWDOG_EXTRA_ARGS are
-# built from individually validated tokens; word-splitting here is intentional.
-# shellcheck disable=SC2086
-git ls-files $INCLUDES --ignored --cached $EXCLUDES \
-  | xargs hadolint -f json $IGNORE_ARGS $HADOLINT_EXTRA_ARGS \
+git ls-files "${includes[@]}" --ignored --cached "${excludes[@]}" \
+  | xargs hadolint -f json "${hadolint_args[@]}" \
   | jq -f "${GITHUB_ACTION_PATH}/to-rdjson.jq" -c \
   | reviewdog -f="rdjson" \
     -name="${INPUT_TOOL_NAME}" \
@@ -102,7 +72,7 @@ git ls-files $INCLUDES --ignored --cached $EXCLUDES \
     -fail-level="${INPUT_FAIL_LEVEL}" \
     -fail-on-error="${INPUT_FAIL_ON_ERROR}" \
     -level="${INPUT_LEVEL}" \
-    $REVIEWDOG_EXTRA_ARGS
+    "${reviewdog_args[@]}"
 EXIT_CODE=$?
 echo '::endgroup::'
 

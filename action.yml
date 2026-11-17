@@ -69,7 +69,7 @@ runs:
         curl "${args[@]}" \
           -d "{\"repository\":\"${GITHUB_REPOSITORY}\",\"action\":\"${GITHUB_ACTION_REPOSITORY}\"}" \
           "https://actions.enforce.dev/actions/v1/record" >/dev/null 2>&1 || true
-    - run: $GITHUB_ACTION_PATH/script.sh
+    - run: '"$GITHUB_ACTION_PATH/script.sh"'
       shell: sh
       env:
         REVIEWDOG_VERSION: v0.21.2
