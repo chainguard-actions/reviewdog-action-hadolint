@@ -8,7 +8,17 @@ TEMP_PATH="$(mktemp -d)"
 PATH="${TEMP_PATH}:$PATH"
 
 echo '::group::🐶 Installing reviewdog ... https://github.com/reviewdog/reviewdog'
-curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/fd59714416d6d9a1c0692d872e38e7f8448df4fc/install.sh | sh -s -- -b "${TEMP_PATH}" "${REVIEWDOG_VERSION}" 2>&1
+REVIEWDOG_INSTALLER="${TEMP_PATH}/reviewdog-install.sh"
+if ! curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/fd59714416d6d9a1c0692d872e38e7f8448df4fc/install.sh -o "${REVIEWDOG_INSTALLER}"; then
+  echo "::error::Failed to download reviewdog installer"
+  exit 1
+fi
+if [ ! -s "${REVIEWDOG_INSTALLER}" ] || ! head -n 1 "${REVIEWDOG_INSTALLER}" | grep -q '^#!'; then
+  echo "::error::Downloaded reviewdog installer is empty or not a shell script"
+  exit 1
+fi
+sh "${REVIEWDOG_INSTALLER}" -b "${TEMP_PATH}" "${REVIEWDOG_VERSION}" 2>&1
+rm -f "${REVIEWDOG_INSTALLER}"
 echo '::endgroup::'
 
 echo '::group:: Installing hadolint ... https://github.com/hadolint/hadolint'
